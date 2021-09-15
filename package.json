@@ -1,0 +1,42 @@
+{
+  "name": "crystal-smv",
+  "version": "0.0.1",
+  "description": "RSquad - Crystal SMV",
+  "main": "index.ts",
+  "scripts": {
+    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --exit -r ts-node/register -r dotenv/config -t 300000 'tests/**/*.test.ts'",
+    "compile": "node ./compile.js",
+    "test:compile": "npm run compile && npm run test",
+    "release": "standard-version",
+    "release:patch": "npm run release -- --release-as patch",
+    "release:minor": "npm run release -- --release-as minor",
+    "release:major": "npm run release -- --release-as major"
+  },
+  "author": {
+    "name": "rsquad",
+    "email": "hello@rsquad.io",
+    "url": "https://rsquad.io"
+  },
+  "license": "Apache-2.0",
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  ],
+  "devDependencies": {},
+  "dependencies": {
+    "standard-version": "^9.3.1",
+    "@tonclient/core": "^1.5.0",
+    "@tonclient/lib-node": "^1.5.0",
+    "@rsquad/ton-utils": "^1.3.1",
+    "@types/chai": "^4.2.14",
+    "@types/mocha": "^8.2.0",
+    "@types/node": "^14.14.16",
+    "chai": "^4.2.0",
+    "dotenv": "^8.2.0",
+    "mocha": "^8.2.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  }
+}
