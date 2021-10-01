@@ -1,17 +1,27 @@
-pragma ton-solidity >= 0.42.0;
+pragma ton-solidity >= 0.43.0;
+
+struct TokenRootData {
+    string name;
+    string symbol;
+    string icon;
+    string desc;
+    uint8 decimals;
+    uint128 totalSupply;
+}
 
 interface ITokenRoot {
-    function deployEmptyWallet(
-        uint32 _answer_id,
-        int8 workchain_id,
-        uint256 pubkey,
-        uint256 internal_owner,
-        uint128 grams
-    ) external functionID(0xD);
+    function deployTokenWallet(
+        uint256 pubkeyOwner,
+        address addrOwner,
+        uint128 initialAmount
+    ) external;
 
-    function getWalletAddress(
-        int8 workchain_id,
-        uint256 pubkey,
-        uint256 owner_std_addr
-    ) external functionID(0x17) returns (address value0);
+    function burn(
+        uint128 amount
+    ) external;
+}
+
+interface ITokenRootCb {
+    function deployTokenWalletCb(address addrTokenWallet) external;
+    function getDataCb(TokenRootData tokenRootData) external;
 }
