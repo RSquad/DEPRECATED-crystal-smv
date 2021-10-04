@@ -25,7 +25,8 @@ contract Proposal is PadawanResolver, IProposal {
         address addrClient,
         string proposalType,
         TvmCell specific,
-        TvmCell codePadawan
+        TvmCell codePadawan,
+        address[] addrsPadawan
     ) public {
         optional(TvmCell) oSalt = tvm.codeSalt(tvm.code());
         require(oSalt.hasValue());
@@ -42,6 +43,7 @@ contract Proposal is PadawanResolver, IProposal {
         _data.end = uint32(now + 60 * 60 * 24 * 7);
         _data.state = ProposalState.New;
         _data.totalVotes = totalVotes;
+        _data.addrsPadawan = addrsPadawan;
 
         _codePadawan = codePadawan;
 
@@ -65,27 +67,38 @@ contract Proposal is PadawanResolver, IProposal {
         require(msg.value >= Fees.START + Fees.PROCESS, Errors.INVALID_VALUE);
         address addrPadawan = resolvePadawan(_addrRoot, addrPadawanOwner);
         uint16 errorCode = 0;
-
-        if (addrPadawan != msg.sender) {
-            errorCode = Errors.INVALID_CALLER;
-        } else if (now < _data.start) {
-            errorCode = Errors.PROPOSAL_VOTING_NOT_STARTED;
-        } else if (now > _data.end) {
-            errorCode = Errors.PROPOSAL_VOTING_HAS_ENDED;
-        }
-
-        if (errorCode > 0) {
-            IPadawan(msg.sender).rejectVote{value: 0, flag: 64, bounce: true}(votes);
-        } else {
-            IPadawan(msg.sender).confirmVote{value: 0, flag: 64, bounce: true}(votes);
-            if (choice) {
-                _data.votesFor += votes;
-            } else {
-                _data.votesAgainst += votes;
+        bool exists;
+        if(data.addrsPadawan.length != 0 ) {
+            for(uint8 i = 0; i < _data.addrsPadawan.length; i++) {
+                if(data.addrsPadawan[i] == addrPadawan) {
+                    exists = true;
+                }
             }
+        } else {
+            exists = true;
         }
 
-        _wrapUp();
+        if(exists) {
+            if (addrPadawan != msg.sender) {
+            errorCode = Errors.INVALID_CALLER;
+            } else if (now < _data.start) {
+                errorCode = Errors.PROPOSAL_VOTING_NOT_STARTED;
+            } else if (now > _data.end) {
+                errorCode = Errors.PROPOSAL_VOTING_HAS_ENDED;
+            }
+
+            if (errorCode > 0) {
+                IPadawan(msg.sender).rejectVote{value: 0, flag: 64, bounce: true}(votes);
+            } else {
+                IPadawan(msg.sender).confirmVote{value: 0, flag: 64, bounce: true}(votes);
+                if (choice) {
+                    _data.votesFor += votes;
+                } else {
+                    _data.votesAgainst += votes;
+                }
+            }
+            _wrapUp();
+        }
     }
 
     function _finalize(bool passed) private {

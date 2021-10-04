@@ -146,7 +146,8 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
                 addrClient,
                 proposalType,
                 specific,
-                _codePadawan
+                _codePadawan,
+                addrsPadawan
             );
         _deployedProposalsCounter++;
     }

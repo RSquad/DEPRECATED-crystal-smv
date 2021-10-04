@@ -20,6 +20,7 @@ struct ProposalData {
     uint128 votesFor;
     uint128 votesAgainst;
     uint128 totalVotes;
+    address[] addrsPadawan;
 }
 
 enum VoteCountModel {
