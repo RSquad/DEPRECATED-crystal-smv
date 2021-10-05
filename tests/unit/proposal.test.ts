@@ -95,7 +95,7 @@ describe("Padawan unit test", () => {
       value: 5_000_000_000,
     });
     await smcSmvRoot.deploy({
-      input: { addrSmvRootStore: smcSmvRootStore.address },
+      input: { addrSmvStore: smcSmvRootStore.address },
     });
 
     await callThroughMultisig({

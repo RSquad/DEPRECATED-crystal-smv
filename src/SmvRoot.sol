@@ -27,43 +27,53 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
     uint8 constant CHECK_PROPOSAL = 1;
     uint8 constant CHECK_PADAWAN = 2;
     uint8 constant CHECK_ADDR_PROPOSAL_FACTORY = 4;
+    uint8 constant CHECK_ABI_PROPOSAL_FACTORY = 8;
 
     function _createChecks() private inline {
         _checkList =
             CHECK_PROPOSAL |
             CHECK_PADAWAN |
-            CHECK_ADDR_PROPOSAL_FACTORY;
+            CHECK_ADDR_PROPOSAL_FACTORY |
+            CHECK_ABI_PROPOSAL_FACTORY;
     }
 
 /* -------------------------------------------------------------------------- */
 /*                                 ANCHOR Init                                */
 /* -------------------------------------------------------------------------- */
 
+    string public _title;
+
     uint32 public _deployedPadawansCounter = 0;
     uint32 public _deployedProposalsCounter = 0;
-    uint16 public _version = 3;
+    uint16 public _version = 4;
 
-    address public _addrSmvRootStore;
+    address public _addrSmvStore;
     address public _addrProposalFactory;
+    bytes public _abiProposalFactory;
 
-    constructor(address addrSmvRootStore) public {
+    constructor(string title, address addrSmvStore) public {
         if (msg.sender == address(0)) {
             require(msg.pubkey() == tvm.pubkey(), 101);
             tvm.accept();
         }
 
-        require(addrSmvRootStore != address(0));
+        require(addrSmvStore != address(0));
+
+        _title = title;
         
-        _addrSmvRootStore = addrSmvRootStore;
-        SmvRootStore(_addrSmvRootStore).queryCode
+        _addrSmvStore = addrSmvStore;
+        ISmvRootStore(_addrSmvStore).queryCode
             {value: 0.2 ton, bounce: true}
             (ContractCode.Proposal);
-        SmvRootStore(_addrSmvRootStore).queryCode
+        ISmvRootStore(_addrSmvStore).queryCode
             {value: 0.2 ton, bounce: true}
             (ContractCode.Padawan);
-        SmvRootStore(_addrSmvRootStore).queryAddr
+        ISmvRootStore(_addrSmvStore).queryAddr
             {value: 0.2 ton, bounce: true}
             (ContractAddr.ProposalFactory);
+        ISmvRootStore(_addrSmvStore).queryAbi
+            {value: 0.2 ton, bounce: true}
+            (ContractAbi.ProposalFactory);
 
         _createChecks();
     }
@@ -80,7 +90,7 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
         ContractCode kind,
         TvmCell code
     ) external override {
-        require(msg.sender == _addrSmvRootStore, Errors.INVALID_CALLER);
+        require(msg.sender == _addrSmvStore, Errors.INVALID_CALLER);
         if (kind == ContractCode.Proposal) {
             _codeProposal = code;
             _passCheck(CHECK_PROPOSAL);
@@ -92,11 +102,20 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
     }
 
     function updateAddr(ContractAddr kind, address addr) external override {
-        require(msg.sender == _addrSmvRootStore, Errors.INVALID_CALLER);
+        require(msg.sender == _addrSmvStore, Errors.INVALID_CALLER);
         require(addr != address(0));
         if (kind == ContractAddr.ProposalFactory) {
             _addrProposalFactory = addr;
             _passCheck(CHECK_ADDR_PROPOSAL_FACTORY);
+        }
+        _onInit();
+    }
+
+    function updateAbi(ContractAbi kind, bytes strAbi) external override {
+        require(msg.sender == _addrSmvStore, Errors.INVALID_CALLER);
+        if (kind == ContractAbi.ProposalFactory) {
+            _abiProposalFactory = strAbi;
+            _passCheck(CHECK_ABI_PROPOSAL_FACTORY);
         }
         _onInit();
     }
@@ -127,6 +146,7 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
     function deployProposal(
         address addrClient,
         string title,
+        string desc,
         uint128 totalVotes,
         address[] addrsPadawan,
         string proposalType,
@@ -141,13 +161,38 @@ contract SmvRoot is ISmvRoot, PadawanResolver, ProposalResolver, ISmvRootStoreCb
                 stateInit: _buildProposalState(address(this), _deployedProposalsCounter),
                 value: Fees.DEPLOY_DEFAULT
             }(
+                _addrSmvStore,
                 title,
+                desc,
                 totalVotes,
                 addrClient,
                 proposalType,
-                specific,
-                _codePadawan
+                specific
             );
         _deployedProposalsCounter++;
+    }
+
+/* -------------------------------------------------------------------------- */
+/*                              ANCHOR Getters                                */
+/* -------------------------------------------------------------------------- */
+
+    function getPublic() public returns (
+        string title,
+        uint32 deployedPadawansCounter,
+        uint32 deployedProposalsCounter,
+        uint16 version,
+        address addrSmvStore,
+        address addrProposalFactory,
+        bytes abiProposalFactory,
+        bool inited
+    ) {
+        title = _title;
+        deployedPadawansCounter = _deployedPadawansCounter;
+        deployedProposalsCounter = _deployedProposalsCounter;
+        version = _version;
+        addrSmvStore = _addrSmvStore;
+        addrProposalFactory = _addrProposalFactory;
+        abiProposalFactory = _abiProposalFactory;
+        inited = _inited;
     }
 }

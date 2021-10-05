@@ -76,7 +76,7 @@ describe("SmvRoot unit test", () => {
       value: 5_000_000_000,
     });
     await smcSmvRoot.deploy({
-      input: { addrSmvRootStore: smcSmvRootStore.address },
+      input: { addrSmvStore: smcSmvRootStore.address },
     });
 
     console.log(`SmvRoot has been deployed: ${smcSmvRoot.address}`);

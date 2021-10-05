@@ -9,7 +9,7 @@ import "./Errors.sol";
 import "./Fees.sol";
 
 contract Padawan is IPadawan {
-    address public _addrRoot;
+    address public _addrSmvRoot;
     address static public _addrOwner;
 
     mapping(address => uint128) public _proposals;
@@ -24,9 +24,9 @@ contract Padawan is IPadawan {
     constructor(address) public {
         optional(TvmCell) oSalt = tvm.codeSalt(tvm.code());
         require(oSalt.hasValue());
-        (address addrRoot) = oSalt.get().toSlice().decode(address);
-        require(msg.sender == addrRoot);
-        _addrRoot = addrRoot;
+        (address addrSmvRoot) = oSalt.get().toSlice().decode(address);
+        require(msg.sender == addrSmvRoot);
+        _addrSmvRoot = addrSmvRoot;
     }
 
 /* -------------------------------------------------------------------------- */
@@ -171,5 +171,25 @@ contract Padawan is IPadawan {
         _lockedVotes = lockedVotes;
     }
 
+/* -------------------------------------------------------------------------- */
+/*                              ANCHOR Getters                                */
+/* -------------------------------------------------------------------------- */
 
+    function getPublic() public returns (
+        address addrSmvRoot,
+        address addrOwner,
+        mapping(address => uint128) proposals,
+        uint128 proposalsCount,
+        uint128 requestedVotes,
+        uint128 totalVotes,
+        uint128 lockedVotes
+    ) {
+        addrSmvRoot = _addrSmvRoot; 
+        addrOwner = _addrOwner;
+        proposals = _proposals;
+        proposalsCount = _proposalsCount;
+        requestedVotes = _requestedVotes;
+        totalVotes = _totalVotes;
+        lockedVotes = _lockedVotes;
+    }
 }

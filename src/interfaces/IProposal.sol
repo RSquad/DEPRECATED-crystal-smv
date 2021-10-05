@@ -11,8 +11,7 @@ struct ProposalResults {
 
 struct ProposalData {
     string title;
-    string proposalType;
-    TvmCell specific;
+    string desc;
     address client;
     ProposalState state;
     uint32 start;
@@ -20,6 +19,8 @@ struct ProposalData {
     uint128 votesFor;
     uint128 votesAgainst;
     uint128 totalVotes;
+    string proposalType;
+    TvmCell specific;
 }
 
 enum VoteCountModel {

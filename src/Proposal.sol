@@ -3,16 +3,38 @@ pragma AbiHeader expire;
 pragma AbiHeader time;
 
 import "./resolvers/PadawanResolver.sol";
+import "./resolvers/CommentResolver.sol";
+import "./Checks.sol";
 
 import "./interfaces/IClient.sol";
 import "./interfaces/IProposal.sol";
 import "./interfaces/IPadawan.sol";
+import "./interfaces/ISmvRootStore.sol";
 
 import "./Fees.sol";
 import "./Errors.sol";
 
-contract Proposal is PadawanResolver, IProposal {
+contract Proposal is PadawanResolver, CommentResolver, Checks, ISmvRootStoreCb, IProposal {
+
+/* -------------------------------------------------------------------------- */
+/*                                ANCHOR Checks                               */
+/* -------------------------------------------------------------------------- */
+
+    uint8 constant CHECK_PADAWAN = 1;
+    uint8 constant CHECK_COMMENT = 2;
+
+    function _createChecks() private inline {
+        _checkList =
+            CHECK_PADAWAN |
+            CHECK_COMMENT;
+    }
+
+/* -------------------------------------------------------------------------- */
+/*                                ANCHOR Init                                 */
+/* -------------------------------------------------------------------------- */
+    
     address public _addrRoot;
+    address public _addrSmvStore;
     uint32 static public _id;
     
     ProposalData public _data;
@@ -20,12 +42,13 @@ contract Proposal is PadawanResolver, IProposal {
     VoteCountModel public _voteCountModel;
 
     constructor(
+        address addrSmvStore,
         string title,
+        string desc,
         uint128 totalVotes,
         address addrClient,
         string proposalType,
-        TvmCell specific,
-        TvmCell codePadawan
+        TvmCell specific
     ) public {
         optional(TvmCell) oSalt = tvm.codeSalt(tvm.code());
         require(oSalt.hasValue());
@@ -33,8 +56,10 @@ contract Proposal is PadawanResolver, IProposal {
         require(msg.sender == addrRoot, Errors.INVALID_CALLER);
         
         _addrRoot = addrRoot;
+        _addrSmvStore = addrSmvStore;
 
         _data.title = title;
+        _data.desc = desc;
         _data.proposalType = proposalType;
         _data.specific = specific;
         _data.client = addrClient;
@@ -43,14 +68,49 @@ contract Proposal is PadawanResolver, IProposal {
         _data.state = ProposalState.New;
         _data.totalVotes = totalVotes;
 
-        _codePadawan = codePadawan;
-
         _voteCountModel = VoteCountModel.SoftMajority;
+
+        ISmvRootStore(_addrSmvStore).queryCode
+            {value: 0.2 ton, bounce: true}
+            (ContractCode.Padawan);
+        ISmvRootStore(_addrSmvStore).queryCode
+            {value: 0.2 ton, bounce: true}
+            (ContractCode.Comment);
 
         IClient(_data.client).onProposalDeployed
             {value: 0.2 ton}
             (_data);
     }
+
+    bool public _inited = false;
+
+    function _onInit() private {
+        if(_isCheckListEmpty() && !_inited) {
+            _inited = true;
+            if(_data.start <= uint32(now)) {
+                _data.state = ProposalState.OnVoting;
+            }
+        }
+    }
+
+    function updateCode(
+        ContractCode kind,
+        TvmCell code
+    ) external override {
+        require(msg.sender == _addrSmvStore, Errors.INVALID_CALLER);
+        if (kind == ContractCode.Padawan) {
+            _codePadawan = code;
+            _passCheck(CHECK_PADAWAN);
+        } else if (kind == ContractCode.Comment) {
+            _codeComment = code;
+            _passCheck(CHECK_COMMENT);
+        }
+        _onInit();
+    }
+
+    function updateAddr(ContractAddr kind, address addr) external override {}
+
+    function updateAbi(ContractAbi kind, bytes strAbi) external override {}
 
     function wrapUp() external override {
         _wrapUp();
@@ -168,6 +228,22 @@ contract Proposal is PadawanResolver, IProposal {
 
     function queryStatus() external override {
         IPadawan(msg.sender).queryStatusCb{value: 0, flag: 64, bounce: true}(_data.state);
+    }
+
+/* -------------------------------------------------------------------------- */
+/*                              ANCHOR Comments                               */
+/* -------------------------------------------------------------------------- */
+
+    uint32 _commentsCounter = 0;
+
+    function addComment(address addrReply, string content) external {
+        require(msg.value >= Fees.START, Errors.INVALID_VALUE);
+        require(msg.sender != address(0), Errors.INVALID_CALLER);
+        TvmCell state = _buildCommentState(address(this), _commentsCounter);
+        new Comment
+            {stateInit: state, value: Fees.START - 0.2 ton}
+            (msg.sender, addrReply, content);
+        _commentsCounter += 1;
     }
 
 }

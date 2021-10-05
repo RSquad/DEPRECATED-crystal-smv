@@ -10,6 +10,11 @@ contract ProposalResolver {
         uint256 hashState = tvm.hash(state);
         addrProposal = address.makeAddrStd(0, hashState);
     }
+
+    function resolveProposalCodeHash(address addrRoot) public view returns (uint256 codeHashProposal) {
+        TvmCell code = _buildProposalCode(addrRoot);
+        codeHashProposal = tvm.hash(code);
+    }
     
     function _buildProposalState(address addrRoot, uint32 id) internal view returns (TvmCell) {
         return tvm.buildStateInit({

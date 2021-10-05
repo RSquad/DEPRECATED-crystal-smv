@@ -8,4 +8,5 @@ compile([
   "SmvRootStore",
   "Proposal",
   "Padawan",
+  "Comment",
 ]);

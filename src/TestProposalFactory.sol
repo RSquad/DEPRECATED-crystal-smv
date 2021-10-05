@@ -5,7 +5,7 @@ pragma AbiHeader time;
 
 import './interfaces/ISmvRoot.sol';
 
-struct Specific {
+struct RegularSpecific {
     uint32 duration;
     string description;
 }
@@ -13,16 +13,19 @@ struct Specific {
 contract ProposalFactory {
     address _addrSmvRoot;
 
+    string constant public _PROPOSAL_TYPES = "Regular";
+
     constructor(address addrSmvRoot) public {
         tvm.accept();
         _addrSmvRoot = addrSmvRoot;
     }
 
-    function deployProposal(
+    function deployRegularProposal(
         address client,
         string title,
+        string desc,
         address[] whiteList,
-        Specific specific
+        RegularSpecific specific
     ) public {
         TvmBuilder b;
         b.store(specific);
@@ -32,10 +35,20 @@ contract ProposalFactory {
             (
                 client,
                 title,
-                1000,
+                desc,
+                1000000,
                 whiteList,
-                'test',
+                'Regular',
                 cellSpecific
             );
+    }
+/* -------------------------------------------------------------------------- */
+/*                              ANCHOR Getters                                */
+/* -------------------------------------------------------------------------- */
+
+    function getPublic() public returns (
+        string PROPOSAL_TYPES
+    ) {
+        PROPOSAL_TYPES = _PROPOSAL_TYPES;
     }
 }
